@@ -13,7 +13,8 @@ from .serializers import UserSerializer, TicketSerializer, EventSerializer
 class GetTickets(APIView):
     renderer_classes = [JSONRenderer]
 
-    def get(self, request, user_id):
+    def get(self, request):
+        user_id = self.request.data['user_id']
         user = User.objects.filter(id=user_id).first()
         if user is None:
             return Response({
