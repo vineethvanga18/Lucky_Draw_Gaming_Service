@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from rest_framework import generics, status
 from rest_framework.renderers import JSONRenderer
 
-from .models import User, Ticket, Event, EventParticipant
+from .models import User, Ticket, Event, EventParticipant, EventPrize
 from .serializers import UserSerializer, TicketSerializer, EventSerializer, FutureEventSerializer
 from .forms import NewUserForm
 
@@ -57,6 +57,7 @@ class Participate(APIView):
     """
     API which allows users to participate in a game.
     """
+
     def post(self, request):
         """
         A Post method for participating in an event for an Authenticated User.
@@ -77,7 +78,7 @@ class Participate(APIView):
         event = Event.objects.filter(
             id=self.request.data['event_id']
         ).first()
-
+        print(ticket.status, ticket.user.id, user.id)
         if ticket is None or ticket.status == "CLOSED" or ticket.user.id is not user.id:
             return Response({
                 "message": "Invalid Ticket ID, No Ticket exists."
@@ -89,8 +90,8 @@ class Participate(APIView):
             }, status=status.HTTP_400_BAD_REQUEST)
 
         if EventParticipant.objects.filter(
-            user=user,
-            event=event
+                user=user,
+                event=event
         ).count() > 0:
             return Response({
                 "message": "You are not allowed to participate twice in the same event."
@@ -126,6 +127,7 @@ class GetWinner(APIView):
     """
     API for Computing and Announcing the winner for an event.
     """
+
     def post(self, request):
         """
         A Post method which computes winner randomly for an Event
@@ -148,12 +150,25 @@ class GetWinner(APIView):
                 "message": "No user participated in this event"
             }, status=status.HTTP_200_OK)
 
-        winner = random.choice(participants)
-        event.winner = User.objects.get(id=winner.user.id)
+        events_prizes = EventPrize.objects.filter(event=event)
+
+        winner = random.sample(list(participants), min(participants.count(), events_prizes.count()))
+
+        print(events_prizes)
+        count = 0
+        total = min(participants.count(), events_prizes.count())
+        for prize in events_prizes:
+            if count < total:
+                prize.winner = winner[count].user
+                prize.save()
+                count += 1
+            else:
+                break
+
         event.set_status("COMPLETE")
 
         return Response({
-            "winner": UserSerializer(event.winner).data
+            "winner": "He is the winner"
         }, status=status.HTTP_200_OK)
 
 
@@ -161,6 +176,7 @@ class SignUpView(APIView):
     """
     API for User Registration
     """
+
     def post(self, request):
         """
         A Post method to validate the credentials and register the user
@@ -185,6 +201,7 @@ class LoginView(APIView):
     """
     API for User Login
     """
+
     def post(self, request):
         """
         A Post method to validate the credentials and authenticate the User
@@ -216,6 +233,7 @@ class LogoutView(APIView):
     """
     API for User Logout
     """
+
     def get(self, request):
         """
 

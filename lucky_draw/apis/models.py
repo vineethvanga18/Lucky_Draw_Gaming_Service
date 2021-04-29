@@ -27,6 +27,13 @@ class Ticket(models.Model):
         verbose_name_plural = 'Tickets'
 
 
+class Prize(models.Model):
+    name = models.CharField(max_length=64)
+
+    def __str__(self):
+        return self.name
+
+
 class Event(models.Model):
     """
     A Model for Events. Each event has a title, date, time,
@@ -35,8 +42,6 @@ class Event(models.Model):
     """
     title = models.CharField(max_length=64)
     date_time = models.DateTimeField()
-    prize = models.CharField(max_length=64)
-    winner = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     status_choices = (
         ('ACTIVE', 'Active'),
         ('COMPLETE', 'Complete'),
@@ -53,6 +58,15 @@ class Event(models.Model):
     class Meta:
         verbose_name = 'Event'
         verbose_name_plural = 'Events'
+
+
+class EventPrize(models.Model):
+    event = models.ForeignKey(Event, on_delete=models.CASCADE, null=False, blank=False)
+    prize = models.ForeignKey(Prize, on_delete=models.SET_NULL, null=True, blank=True)
+    winner = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+
+    def __str__(self):
+        return '{}-{}'.format(self.event.title, self.prize.name)
 
 
 class EventParticipant(models.Model):
